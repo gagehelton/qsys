@@ -1,3 +1,5 @@
+#!/usr/bin/python3
+
 import json,socket,time,threading
 from helpers import required_args,lineno,epoch
 from logg3r import Log
