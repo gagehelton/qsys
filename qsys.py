@@ -48,13 +48,12 @@ class Core():
                 self.port = 1710 #standard port
 
             self.__dict__.update(**kwargs)
-            print(self.__dict__)
             self.logger = Log(log_path="./test_logs/",name='Core_{ip}'.format(**self.__dict__),level=1)
             self.logger.log("object initialized",1)
 
             #store objects and change groups
-            self.objects = {}
-            self.change_groups = {}
+            self.Objects = {}
+            self.ChangeGroups = {}
 
             self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.ConnectionMethods = ConnectionMethods(parent=self,User=self.User,Password=self.Password)
@@ -68,7 +67,6 @@ class Core():
             threading.Thread(target=self.keepalive).start()
 
     def connect(self):
-        print(self.ip,self.port)
         try:
             self.sock.connect((self.ip,self.port))
             return True
@@ -79,9 +77,10 @@ class Core():
     def listen(self):
         while True:
             try:
-                rx = self.sock.recv(4096).decode('utf-8')
+                rx = self.sock.recv(65534).decode('utf-8')
                 self.parse(rx)
             except Exception as e:
+                print(rx)
                 self.logger.log(lineno()+"<Core class> listen() | {} | {}".format(type(e).__name__,e.args),5)
             time.sleep(.001)
 
@@ -96,42 +95,62 @@ class Core():
 
     def parse(self,payload): #need to think about this some more
         parsed = {}
-        payload = json.loads(payload.replace("\0",""))
+        try:
+            payload = json.loads(payload.replace("\0",""))
+        except Exception as e:
+            self.logger.log(lineno()+"<Core class> parse() - {} | {}".format(type(e).__name__,e.args),5)
+            return False
+
+        ## THERE IS A MORE EFFICIENT WAY TO DO THIS
         try:
             result = payload['result']
         except KeyError:
             try:
                 result = payload['params']['Changes']
             except KeyError:
-                print("FIX THIS SHIT")
+                try:
+                    error = payload['error']
+                    self.logger.log(lineno()+"<Core class> error | code: {} | message: {}".format(error['code'],error['message']),5)
+                except KeyError:
+                    try:
+                        if('EngineStatus' in payload['method']):
+                            self.__dict__.update(**payload['params']) #update __dict__ with EngineStatus tokens
+                    except KeyError:
+                        print("no idea...")
+                        print(payload)
                 return False
-        
+        except Exception as e:
+            self.logger.log(lineno()+"<Core class> parse() - {} | {}".format(type(e).__name__,e.args),5)
+    
+        #parse messages
         try:
             if(isinstance(result,list)):
                 for item in result:
                     try:
-                        self.objects[item['Name']].state.update(**item)
+                        self.Objects[item['Name']].state.update(**item)
                     except Exception as e:
-                        self.logger.log(lineno()+"<ObjectStore class> parse() - {} | {}".format(type(e).__name__,e.args),5)
+                        self.logger.log(lineno()+"<Core class> parse() - {} | {}".format(type(e).__name__,e.args),5)
             elif(isinstance(result,dict)):
                 try:
-                    self.objects[result['Name']].state.update(**result)
+                    self.Objects[result['Name']].state.update(**result)
                 except Exception as e:
-                    self.logger.log(lineno()+"<ObjectStore class> parse() - {} | {}".format(type(e).__name__,e.args),5)
+                    self.logger.log(lineno()+"<Core class> parse() - {} | {}".format(type(e).__name__,e.args),5)
             else:
-                self.logger.log(lineno()+"<ObjectStore class> parse() - result isn't a list or dictionary!",5)
+                self.logger.log(lineno()+"<Core class> parse() - result isn't a list or dictionary!",5)
         except Exception as e:
-            self.logger.log(lineno()+"<ObjectStore class> parse() - {} | {}".format(type(e).__name__,e.args),5)
+            self.logger.log(lineno()+"<Core class> parse() - {} | {}".format(type(e).__name__,e.args),5)
 
     def __adopt__(self,obj):
         try:
-            self.objects.update({obj.Name:obj})
+            self.Objects.update({obj.Name:obj})
         except AttributeError:
-            self.objects.update({obj.Id:obj})
+            self.ChangeGroups.update({obj.Id:obj})
 
     def __repr__(self):
         return self.ip
 
+
+#Control methods
 class Base():    
     def struct(self):
         return {'jsonrpc':'2.0','method':'{method}','params':'{params}'}
@@ -195,32 +214,45 @@ class ChangeGroup(Base):
         success,error = required_args(kwargs,required)
         if(success):
             self.__dict__.update(**kwargs)
-            self.auto_poll = False
-            self.auto_poll_rate = False
             self.__cast__()
+            self.AutoPollState = False
+            self.AutoPollRate = False
         else:
             init_logger.log(lineno()+"<ChangeGroup class> __init__() | {}".format(error),5)
-    
-    def poll(self,**kwargs):
-        try:
-            self.auto_poll = kwargs['auto']
-            try:
-                self.auto_poll_rate = kwargs['rate']
-            except:
-                pass
-        except:
-            pass
-        if(self.auto_poll):
-            return self.send(self.parent.sock,self.parent.logger,method='ChangeGroup.AutoPoll',id=epoch(),params={'Id':self.Id,'Rate':self.auto_poll_rate})
+
+    def AddControl(self,obj):
+        return self.send(self.parent.sock,self.parent.logger,method='ChangeGroup.AddControl',params={'Id':self.Id,'Controls':[obj.Name]})
+
+    def AddComponentControl(self,obj):
+        return self.send(self.parent.sock,self.parent.logger,method='ChangeGroup.AddComponentControl',params={'Id':self.Id,'Component':{'Name':obj.Name,'Controls':[obj.Controls]}})
+
+    def Remove(self,obj):
+        return self.send(self.parent.sock,self.parent.logger,method='ChangeGroup.Remove',params={'Id':self.Id,'Controls':[obj.Name]})
+
+    def Destroy(self):
+        return self.send(self.parent.sock,self.parent.logger,method='ChangeGroup.Destroy',params={'Id':self.Id})
+
+    def Invalidate(self):
+        return self.send(self.parent.sock,self.parent.logger,method='ChangeGroup.Invalidate',params={'Id':self.Id})
+
+    def Clear(self):
+        return self.send(self.parent.sock,self.parent.logger,method='ChangeGroup.Clear',params={'Id':self.Id})
+
+    def Poll(self,**kwargs):
         return self.send(self.parent.sock,self.parent.logger,method='ChangeGroup.Poll',id=epoch(),params={'Id':self.Id})
 
-    def add_control(self,obj):
-        return self.send(self.parent.sock,self.parent.logger,method='ChangeGroup.AddControl',params={'Id':self.Id,'Controls':[obj.Name]})
+    def AutoPoll(self,**kwargs):
+        required = {'Rate':[int,float]}
+        success,error = required_args(kwargs,required)
+        if(success):
+            self.AutoPollState = True
+            self.AutoPollRate = kwargs['Rate']
+            return self.send(self.parent.sock,self.parent.logger,method='ChangeGroup.AutoPoll',id=epoch(),params={'Id':self.Id,'Rate':self.AutoPollRate})
+        else:
+            self.parent.logger.log(lineno()+"<ChangeGroup class> AutoPoll() | Id: {} | {}".format(self.Id,error),5)
 
     def __repr__(self):
         pass
-    
-
 
 class Control(Base):
     #self.init = initialized state of control
@@ -261,7 +293,15 @@ class Control(Base):
     def __repr__(self):
         return '<QSYS Control Object | Parent - {} | Name = {}>'.format(self.parent,self.Name)
 
-class Component(Base):
+class ComponentControl(Base): #coming soon
+    def __init__(self,**kwargs):
+        pass
+
+class MixerControl(Base): #coming soon
+    def __init__(self,**kwargs):
+        pass
+
+class LoopPlayerControl(Base): #coming soon
     def __init__(self,**kwargs):
         pass
 
@@ -269,17 +309,28 @@ if __name__ == '__main__':
     core = Core(User='',Password='',ip='192.168.61.2')
     core.start()
 
-    gain = Control(parent=core,Name='gain',ValueType=int)
-    changegroup = ChangeGroup(parent=core,Id='mygroup')
+    #gain = Control(parent=core,Name='gain',ValueType=int)
     
-    time.sleep(2)
-    print(gain.state)
+    cg = ChangeGroup(parent=core,Id='mygroup')
 
-    changegroup.add_control(gain)
-    changegroup.poll(auto=True,rate=.1)
+    for i in range(1,10):
+        l = Control(parent=core,name='Mixer6x9Output{}Label'.format(i),ValueType=str)
+        cg.AddControl(l)
+        m = Control(parent=core,name='Mixer6x9Output{}Mute'.format(i),ValueType=[int,float])
+        cg.AddControl(m)
+        g = Control(parent=core,name='Mixer6x9Output{}Gain'.format(i),ValueType=[int,float])
+        cg.AddControl(g)
+
+    time.sleep(2)
+
+    cg.AutoPoll(Rate=.1)
 
     while True:
         #val = int(input('Enter Value: '))
         #gain.set(TransId=epoch(),Value=val)
-        time.sleep(1)
-        #print(gain.state)
+        print(gain.state)
+
+        for c in core.Controls:
+            print(c.Name,c.State)
+            print("\n\n")
+            time.sleep(.5)
