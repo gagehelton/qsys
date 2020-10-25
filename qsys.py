@@ -128,8 +128,8 @@ class Core():
                         print(payload)
                         return False
         except Exception as e:
-            self.logger.log(lineno()+"<Core class> parse() - {} | {}".format(type(e).__name__,e.args),5)
-            print(payload)
+            #self.logger.log(lineno()+"<Core class> parse() - {} | {}".format(type(e).__name__,e.args),5)
+            #COME BACK TO THIS
             return False
 
         #parse messages
@@ -139,7 +139,7 @@ class Core():
                     try:
                         self.Objects[item['Name']].state.update(**item)
                         if(self.Objects[item['Name']].state != self.Objects[item['Name']].last_state):
-                            print(self.Objects[item['Name']].state)
+                            #print(self.Objects[item['Name']].state)
                             self.Objects[item['Name']].last_state = copy.copy(self.Objects[item['Name']].state)
                     except Exception as e:
                         self.logger.log(lineno()+"<Core class> parse() - {} | {}".format(type(e).__name__,e.args),5)
@@ -147,7 +147,7 @@ class Core():
                 try:
                     self.Objects[result['Name']].state.update(**result)
                     if(self.Objects[result['Name']].state != self.Objects[result['Name']].last_state):
-                        print(self.Objects[result['Name']].state)
+                        #print(self.Objects[result['Name']].state)
                         self.Objects[result['Name']].last_state = copy.copy(self.Objects[result['Name']].state)
                 except Exception as e:
                     self.logger.log(lineno()+"<Core class> parse() - {} | {}".format(type(e).__name__,e.args),5)
@@ -346,7 +346,10 @@ if __name__ == '__main__':
     while True:
         x = str(input("Control Name: "))
         if(x):
-            print(core.Objects[x].state)
+            try:
+                print(core.Objects[x].state)
+            except:
+                print("fail")
 
     '''
     while True:
