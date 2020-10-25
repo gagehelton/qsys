@@ -1,15 +1,3 @@
-# Python QSYS QRC Wrapper
-* Control QSC QSYS Core devices with python
-
-# ToDo
-* Flaskify... 
-* Document, document, document
-
-# Use
-* For each QSC Core on the network instantiate a "Core" class
-* When adding control objects they will "cast" themselves to the parent core class
-    * The parent Core class instance is required as keyword arg "parent" when creating control objects
-```python
 import time
 from qsys import Core,Control,ChangeGroup
 
@@ -42,10 +30,3 @@ myChangeGroup.AutoPoll(Rate=0.1)
 while True:
     print(gainControlObject.state)
     time.sleep(1)
-```
-
-# Notes
-* In development, versions will change rapidly. This version doesn't do much yet.. stand by
-
-# References
-* https://q-syshelp.qsc.com/Content/External_Control/Q-Sys_Remote_Control/QRC.htm
