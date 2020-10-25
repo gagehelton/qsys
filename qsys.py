@@ -3,6 +3,7 @@
 import json,socket,time,threading
 from helpers import required_args,lineno,epoch
 from logg3r import Log
+import copy
 
 
 init_logger = Log(log_path="./test_logs/",name='init_logger',level=1)
@@ -94,10 +95,13 @@ class Core():
                     t.join()
 
     def parse(self,payload): #need to think about this some more
-        parsed = {}
         try:
             payload = json.loads(payload.replace("\0",""))
+        except json.JSONDecodeError:
+            print(payload)
+            return False
         except Exception as e:
+            print(payload)
             self.logger.log(lineno()+"<Core class> parse() - {} | {}".format(type(e).__name__,e.args),5)
             return False
 
@@ -115,24 +119,36 @@ class Core():
                     try:
                         if('EngineStatus' in payload['method']):
                             self.__dict__.update(**payload['params']) #update __dict__ with EngineStatus tokens
+                        else:
+                            print("no idea...") #this is where group stuff could go
+                            print(payload)
+                            return False
                     except KeyError:
                         print("no idea...")
                         print(payload)
-                return False
+                        return False
         except Exception as e:
             self.logger.log(lineno()+"<Core class> parse() - {} | {}".format(type(e).__name__,e.args),5)
-    
+            print(payload)
+            return False
+
         #parse messages
         try:
             if(isinstance(result,list)):
                 for item in result:
                     try:
                         self.Objects[item['Name']].state.update(**item)
+                        if(self.Objects[item['Name']].state != self.Objects[item['Name']].last_state):
+                            print(self.Objects[item['Name']].state)
+                            self.Objects[item['Name']].last_state = copy.copy(self.Objects[item['Name']].state)
                     except Exception as e:
                         self.logger.log(lineno()+"<Core class> parse() - {} | {}".format(type(e).__name__,e.args),5)
             elif(isinstance(result,dict)):
                 try:
                     self.Objects[result['Name']].state.update(**result)
+                    if(self.Objects[result['Name']].state != self.Objects[result['Name']].last_state):
+                        print(self.Objects[result['Name']].state)
+                        self.Objects[result['Name']].last_state = copy.copy(self.Objects[result['Name']].state)
                 except Exception as e:
                     self.logger.log(lineno()+"<Core class> parse() - {} | {}".format(type(e).__name__,e.args),5)
             else:
@@ -263,6 +279,7 @@ class Control(Base):
             self.__dict__.update(**kwargs)
             self.init = True
             self.state = {}
+            self.last_state = {}
             self.__cast__()
             self.get(TransId=epoch())
         else:
@@ -314,23 +331,27 @@ if __name__ == '__main__':
     cg = ChangeGroup(parent=core,Id='mygroup')
 
     for i in range(1,10):
-        l = Control(parent=core,name='Mixer6x9Output{}Label'.format(i),ValueType=str)
+        l = Control(parent=core,Name='Mixer6x9Output{}Label'.format(i),ValueType=str)
         cg.AddControl(l)
-        m = Control(parent=core,name='Mixer6x9Output{}Mute'.format(i),ValueType=[int,float])
+        m = Control(parent=core,Name='Mixer6x9Output{}Mute'.format(i),ValueType=[int,float])
         cg.AddControl(m)
-        g = Control(parent=core,name='Mixer6x9Output{}Gain'.format(i),ValueType=[int,float])
+        g = Control(parent=core,Name='Mixer6x9Output{}Gain'.format(i),ValueType=[int,float])
         cg.AddControl(g)
+        print(l,m,g)
 
     time.sleep(2)
 
     cg.AutoPoll(Rate=.1)
-
+    '''
     while True:
         #val = int(input('Enter Value: '))
         #gain.set(TransId=epoch(),Value=val)
-        print(gain.state)
+        
+        #print(gain.state)
 
-        for c in core.Controls:
-            print(c.Name,c.State)
+        for c in core.Objects:
+            print(core.Objects[c].Name,core.Objects[c].state)
+            #print(c.Name,c.State)
             print("\n\n")
             time.sleep(.5)
+    '''
