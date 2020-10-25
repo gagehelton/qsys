@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 import json,socket,time,threading
-from helpers import required_args,lineno,epoch
+from qsys.helpers import required_args,lineno,epoch
 from logg3r import Log
 import copy
 
@@ -325,7 +325,3 @@ class MixerControl(Base): #coming soon
 class LoopPlayerControl(Base): #coming soon
     def __init__(self,**kwargs):
         pass
-
-if __name__ == '__main__':
-    from test import main
-    main()

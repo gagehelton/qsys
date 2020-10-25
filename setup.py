@@ -1,5 +1,7 @@
 from setuptools import setup
 
+req = open("./requirements.txt","r").read()
+
 with open("./README.md","r")as f:
     long_description = f.read()
 
@@ -16,4 +18,5 @@ setup(name='qsys',
             "Operating System :: OS Independent",
         ],
         long_description=long_description,
-        long_description_content_type="text/markdown")
+        long_description_content_type="text/markdown",
+        install_required=req)

@@ -12,7 +12,10 @@
 ```python
 #!/usr/bin/python3
 import time
-from qsys import Core,Control,ChangeGroup
+from qsys.classes import Core,Control,ChangeGroup
+
+#returns epoch time
+from qsys.helpers import epoch
 
 def main():
     #See qsys.py for parameters in Core class
@@ -41,10 +44,16 @@ def main():
     #This rate is fast, your mileage may vary
     myChangeGroup.AutoPoll(Rate=0.1)
 
+    #Value = value to set object to
+    #TransId = QRC id parameter for transaction ID
+    gainControlObject.set(Value=10,TransId=epoch())
+
     while True:
         print(gainControlObject.state)
         time.sleep(1)
 
+if __name__ == '__main__':
+    main()
 ```
 
 # Notes
