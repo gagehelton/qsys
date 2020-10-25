@@ -1,5 +1,4 @@
 #!/usr/bin/python3
-
 import json,socket,time,threading
 from helpers import required_args,lineno,epoch
 from logg3r import Log
@@ -39,6 +38,7 @@ class Core():
     def __init__(self,**kwargs):
         required = {'User':str,
                     'Password':str,
+                    'Name':str,
                     'ip':str}
         self.success,error = required_args(kwargs,required)
         if(self.success):
@@ -59,7 +59,7 @@ class Core():
             self.ConnectionMethods = ConnectionMethods(parent=self,User=self.User,Password=self.Password)
             self.StatusMethods = StatusMethods(parent=self)
         else:
-            init_logger.log(lineno()+"<Core class> __init__ () | {}".format(error),5)
+            init_logger.log(lineno()+"<qsys.Core class> __init__ () | {}".format(error),5)
     
     def start(self):
         if(self.connect()):
@@ -71,7 +71,7 @@ class Core():
             self.sock.connect((self.ip,self.port))
             return True
         except Exception as e:
-            self.logger.log(lineno()+"<Core class> connect() | {} | {}".format(type(e).__name__,e.args),5)
+            self.logger.log(lineno()+"<qsys.Core class> connect() | {} | {}".format(type(e).__name__,e.args),5)
             return False
 
     def listen(self):
@@ -81,7 +81,7 @@ class Core():
                 self.parse(rx)
             except Exception as e:
                 print(rx)
-                self.logger.log(lineno()+"<Core class> listen() | {} | {}".format(type(e).__name__,e.args),5)
+                self.logger.log(lineno()+"<qsys.Core class> listen() | {} | {}".format(type(e).__name__,e.args),5)
             time.sleep(.001)
 
     def keepalive(self):
@@ -101,7 +101,7 @@ class Core():
             return False
         except Exception as e:
             print(payload)
-            self.logger.log(lineno()+"<Core class> parse() - {} | {}".format(type(e).__name__,e.args),5)
+            self.logger.log(lineno()+"<qsys.Core class> parse() - {} | {}".format(type(e).__name__,e.args),5)
             return False
 
         ## THERE IS A MORE EFFICIENT WAY TO DO THIS
@@ -113,7 +113,7 @@ class Core():
             except KeyError:
                 try:
                     error = payload['error']
-                    self.logger.log(lineno()+"<Core class> error | code: {} | message: {}".format(error['code'],error['message']),5)
+                    self.logger.log(lineno()+"<qsys.Core class> error | code: {} | message: {}".format(error['code'],error['message']),5)
                 except KeyError:
                     try:
                         if('EngineStatus' in payload['method']):
@@ -127,7 +127,7 @@ class Core():
                         print(payload)
                         return False
         except Exception as e:
-            #self.logger.log(lineno()+"<Core class> parse() - {} | {}".format(type(e).__name__,e.args),5)
+            #self.logger.log(lineno()+"<qsys.Core class> parse() - {} | {}".format(type(e).__name__,e.args),5)
             #COME BACK TO THIS
             return False
 
@@ -141,7 +141,7 @@ class Core():
                             #print(self.Objects[item['Name']].state)
                             self.Objects[item['Name']].last_state = copy.copy(self.Objects[item['Name']].state)
                     except Exception as e:
-                        self.logger.log(lineno()+"<Core class> parse() - {} | {}".format(type(e).__name__,e.args),5)
+                        self.logger.log(lineno()+"<qsys.Core class> parse() - {} | {}".format(type(e).__name__,e.args),5)
             elif(isinstance(result,dict)):
                 try:
                     self.Objects[result['Name']].state.update(**result)
@@ -149,11 +149,11 @@ class Core():
                         #print(self.Objects[result['Name']].state)
                         self.Objects[result['Name']].last_state = copy.copy(self.Objects[result['Name']].state)
                 except Exception as e:
-                    self.logger.log(lineno()+"<Core class> parse() - {} | {}".format(type(e).__name__,e.args),5)
+                    self.logger.log(lineno()+"<qsys.Core class> parse() - {} | {}".format(type(e).__name__,e.args),5)
             else:
-                self.logger.log(lineno()+"<Core class> parse() - result isn't a list or dictionary!",5)
+                self.logger.log(lineno()+"<qsys.Core class> parse() - result isn't a list or dictionary!",5)
         except Exception as e:
-            self.logger.log(lineno()+"<Core class> parse() - {} | {}".format(type(e).__name__,e.args),5)
+            self.logger.log(lineno()+"<qsys.Core class> parse() - {} | {}".format(type(e).__name__,e.args),5)
 
     def __adopt__(self,obj):
         try:
@@ -162,7 +162,7 @@ class Core():
             self.ChangeGroups.update({obj.Id:obj})
 
     def __repr__(self):
-        return self.ip
+        return '<qsys.Core class | Name: {Name} | Ip: {ip}>'.format(**self.__dict__)
 
 #Control methods
 class Base():    
@@ -173,7 +173,7 @@ class Base():
         try:
             return (json.dumps(s)+"\0").encode('utf-8')
         except Exception as e:
-            logger.log(lineno()+"<Base class> encode() | {} | {}".format(type(e).__name__,e.args),5)
+            logger.log(lineno()+"<qsys.Base class> encode() | {} | {}".format(type(e).__name__,e.args),5)
             return False
 
     def send(self,sock,logger,**kwargs):
@@ -182,7 +182,7 @@ class Base():
         try:
             sock.send(self.encode(tmp,logger))
         except Exception as e:
-            logger.log(lineno()+"<Base class> send() | {} | {}".format(type(e).__name__,e.args),5)
+            logger.log(lineno()+"<qsys.Base class> send() | {} | {}".format(type(e).__name__,e.args),5)
             return False
         return True
 
@@ -191,27 +191,30 @@ class Base():
 
 class ConnectionMethods(Base):
     def __init__(self,**kwargs):
-        required = {'parent':'*','User':str,'Password':str}
+        required = {'parent':Core,'User':str,'Password':str}
         success,error = required_args(kwargs,required)
         if(success):
             self.__dict__.update(**kwargs)
         else:
-            init_logger.log(lineno()+"<ConnectionMethods class> __init__() | {}".format(error),5)
+            init_logger.log(lineno()+"<qsys.ConnectionMethods class> __init__() | {}".format(error),5)
 
     def Logon(self):
         return self.send(self.parent.sock,self.parent.logger,method='logon',params={'User':self.User,'Password':self.Password})
 
     def NoOp(self):
         return self.send(self.parent.sock,self.parent.logger,method='NoOp',params={})
+    
+    def __repr__(self):
+        return '<qsys.ConnectionMethods class | Parent: {}>'.format(self.parent.name)
 
 class StatusMethods(Base):
     def __init__(self,**kwargs):
-        required = {'parent':'*'}
+        required = {'parent':Core}
         success,error = required_args(kwargs,required)
         if(success):
             self.__dict__.update(**kwargs)
         else:
-            init_logger.log(lineno()+"<ConnectionMethods class> __init__() | {}".format(error),5)
+            init_logger.log(lineno()+"<qsys.ConnectionMethods class> __init__() | {}".format(error),5)
     
     def StatusGet(self,**kwargs):
         required = {'TransId':[int,float]}
@@ -219,12 +222,15 @@ class StatusMethods(Base):
         if(success):
             return self.send(self.parent.sock,self.parent.logger,method='StatusGet',id=kwargs['TransId'],params=0)
         else:
-            self.parent.logger.log(lineno()+"<StatusMethods class> StatusGet() | {}".format(error),5)
+            self.parent.logger.log(lineno()+"<qsys.StatusMethods class> StatusGet() | {}".format(error),5)
             return False
+    
+    def __repr__(self):
+        return '<qsys.StatusMethods class | Parent: {}>'.format(self.parent.name)
 
 class ChangeGroup(Base):
     def __init__(self,**kwargs):
-        required = {'parent':'*','Id':str}
+        required = {'parent':Core,'Id':str}
         success,error = required_args(kwargs,required)
         if(success):
             self.__dict__.update(**kwargs)
@@ -232,7 +238,7 @@ class ChangeGroup(Base):
             self.AutoPollState = False
             self.AutoPollRate = False
         else:
-            init_logger.log(lineno()+"<ChangeGroup class> __init__() | {}".format(error),5)
+            init_logger.log(lineno()+"<qsys.ChangeGroup class> __init__() | {}".format(error),5)
 
     def AddControl(self,obj):
         return self.send(self.parent.sock,self.parent.logger,method='ChangeGroup.AddControl',params={'Id':self.Id,'Controls':[obj.Name]})
@@ -263,15 +269,15 @@ class ChangeGroup(Base):
             self.AutoPollRate = kwargs['Rate']
             return self.send(self.parent.sock,self.parent.logger,method='ChangeGroup.AutoPoll',id=epoch(),params={'Id':self.Id,'Rate':self.AutoPollRate})
         else:
-            self.parent.logger.log(lineno()+"<ChangeGroup class> AutoPoll() | Id: {} | {}".format(self.Id,error),5)
+            self.parent.logger.log(lineno()+"<qsys.qsys.ChangeGroup class> AutoPoll() | Id: {} | {}".format(self.Id,error),5)
 
     def __repr__(self):
-        pass
+        return '<qsys.ChangeGroup class | Parent: {} | Id: {}>'.format(self.parent.Name,self.Id)
 
 class Control(Base):
     #self.init = initialized state of control
     def __init__(self,**kwargs):
-        required = {'parent':'*','Name':str,'ValueType':'*'}
+        required = {'parent':Core,'Name':str,'ValueType':'*'}
         success,error = required_args(kwargs,required)
         if(success):
             self.__dict__.update(**kwargs)
@@ -281,7 +287,7 @@ class Control(Base):
             self.__cast__()
             self.get(TransId=epoch())
         else:
-            init_logger.log(lineno()+"<Control class> __init__() | {}".format(error),5)
+            init_logger.log(lineno()+"<qsys.Control class> __init__() | {}".format(error),5)
             self.init = False
 
     def get(self,**kwargs):
@@ -290,7 +296,7 @@ class Control(Base):
         if(success):
             return self.send(self.parent.sock,self.parent.logger,method='Control.Get',id=kwargs['TransId'],params=[self.Name])
         else:
-            self.parent.logger.log(lineno()+"<Control class> set() - {} | {}".format(self.Name,error),5)
+            self.parent.logger.log(lineno()+"<qsys.Control class> set() - {} | {}".format(self.Name,error),5)
             return False
 
     def set(self,**kwargs):
@@ -302,11 +308,11 @@ class Control(Base):
             params = {k:v for k,v in kwargs.items() if k != 'TransId'}
             return self.send(self.parent.sock,self.parent.logger,method='Control.Set',id=kwargs['TransId'],params={k:v for k,v in kwargs.items() if k not in IgnoreKeys})
         else:
-            self.parent.logger.log(lineno()+"<Control class> set() - {} | {}".format(self.Name,error),5)
+            self.parent.logger.log(lineno()+"<qsys.Control class> set() - {} | {}".format(self.Name,error),5)
             return False
 
     def __repr__(self):
-        return '<QSYS Control Object | Parent - {} | Name = {}>'.format(self.parent,self.Name)
+        return '<qsys.Control class | Parent: {} | Name: {}>'.format(self.parent.name,self.Name)
 
 class ComponentControl(Base): #coming soon
     def __init__(self,**kwargs):
