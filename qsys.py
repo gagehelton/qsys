@@ -5,7 +5,6 @@ from helpers import required_args,lineno,epoch
 from logg3r import Log
 import copy
 
-
 init_logger = Log(log_path="./test_logs/",name='init_logger',level=1)
 
 ErrorCodes = {
@@ -94,11 +93,11 @@ class Core():
                 if(not t.is_alive()):
                     t.join()
 
+    #THIS CODE SUCKS
     def parse(self,payload): #need to think about this some more
         try:
             payload = json.loads(payload.replace("\0",""))
         except json.JSONDecodeError:
-            print(payload)
             return False
         except Exception as e:
             print(payload)
@@ -164,7 +163,6 @@ class Core():
 
     def __repr__(self):
         return self.ip
-
 
 #Control methods
 class Base():    
@@ -330,6 +328,7 @@ if __name__ == '__main__':
     
     cg = ChangeGroup(parent=core,Id='mygroup')
 
+    #create some control objects
     for i in range(1,10):
         l = Control(parent=core,Name='Mixer6x9Output{}Label'.format(i),ValueType=str)
         cg.AddControl(l)
@@ -350,17 +349,3 @@ if __name__ == '__main__':
                 print(core.Objects[x].state)
             except:
                 print("fail")
-
-    '''
-    while True:
-        #val = int(input('Enter Value: '))
-        #gain.set(TransId=epoch(),Value=val)
-        
-        #print(gain.state)
-
-        for c in core.Objects:
-            print(core.Objects[c].Name,core.Objects[c].state)
-            #print(c.Name,c.State)
-            print("\n\n")
-            time.sleep(.5)
-    '''
