@@ -11,7 +11,7 @@ setup(name='qsys',
         author='Gage Helton',
         author_email='gagehelton@gmail.com',
         url='https://github.com/mghelton/qsys',
-        packages=['.'],
+        packages=['qsys'],
         classifiers=[
             "Programming Language :: Python :: 3",
             "License :: OSI Approved :: MIT License",
