@@ -61,3 +61,4 @@ if __name__ == '__main__':
 
 # References
 * https://q-syshelp.qsc.com/Content/External_Control/Q-Sys_Remote_Control/QRC.htm
+* https://github.com/rakibtg/Python-Chat-App - simple chat app example with SocketIO, use for UI
