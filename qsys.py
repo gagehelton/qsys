@@ -342,6 +342,12 @@ if __name__ == '__main__':
     time.sleep(2)
 
     cg.AutoPoll(Rate=.1)
+
+    while True:
+        x = str(input("Control Name: "))
+        if(x):
+            print(core.Objects[x].state)
+
     '''
     while True:
         #val = int(input('Enter Value: '))
