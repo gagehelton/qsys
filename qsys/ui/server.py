@@ -1,32 +1,40 @@
-from flask import Flask, render_template
+from flask import Flask, render_template, request
 from flask_socketio import SocketIO, emit
-import time,threading
-import sys
+from threading import Thread,Event
+import time,json,sys
+
 sys.path.append("../../")
 from qsys.classes import Core,ChangeGroup,Control
 
 app = Flask(__name__)
-socketio = SocketIO(app,async_mode='threading')
+app.config['SECRET_KEY'] = 'secret!'
+app.config['DEBUG'] = True
+socketio = SocketIO(app, async_mode=None, logger=True, engineio_logger=True)
+
+#random number Generator Thread
+thread = Thread()
+thread_stop_event = Event()
 
 core = Core(Name='myCore',User='',Password='',ip='192.168.61.2')
 core.start()    
 time.sleep(2)
 gainControlObject = Control(parent=core,Name='namedControlInQsysDesigner',ValueType=[int,float])    
-myChangeGroup = ChangeGroup(parent=core,Id='myChangeGroup')
+myChangeGroup = ChangeGroup(parent=core,Id='eventlet')
 myChangeGroup.AddControl(gainControlObject)
 myChangeGroup.AutoPoll(Rate=0.1)
 
-thread = None
 
-def bg_task():
-    print("BG")
-    last_val = False
-    while True:
+##---------------------------------------------------------------------
+def randomNumberGenerator():
+    last_val = None
+    while not thread_stop_event.isSet():
         try:
             if(last_val != gainControlObject.state['Value']):
                 print("change")
                 try:
-                    emit('my response',gainControlObject.state['Value'],namespace='')
+                    #socketio.emit('newnumber',json.dumps({"number":gainControlObject.state['Value']}),namespace='/test')
+                    socketio.emit('newnumber', {'number': round(gainControlObject.state['Value'])}, namespace='/test')
+                    
                 except Exception as e:
                     print(type(e).__name__,e.args,"\n\n")
                 last_val = gainControlObject.state['Value']
@@ -34,28 +42,33 @@ def bg_task():
                 print(last_val)
         except KeyError:
             pass
+        socketio.sleep(.1)
 
-@socketio.on('connect')
-def start():
-    print("connect")
-    emit('my response', 'start')
-    global thread
-    if thread is None:
-        print('thread ding')
-        thread = socketio.start_background_task(target=bg_task)
-    return render_template('ChatApp.html')
 
-def messageRecieved():
-    print('rx')
-
-@socketio.on('my event')
-def handle_my_custom_event(json):
-    print('rx: {}'.format(str(json)))
-    socketio.emit('my response',json,callback=messageRecieved)
-
-@app.route("/")
+@app.route('/')
 def index():
-    return render_template('ChatApp.html')
+    #only by sending this page first will the client be connected to the socketio instance
+    return render_template('index.html')
+
+@socketio.on('connect', namespace='/test')
+def test_connect():
+    # need visibility of the global thread object
+    global thread
+    print('Client connected')
+
+    #Start the random number generator thread only if the thread has not been started before.
+    if not thread.isAlive():
+        print("Starting Thread")
+        thread = socketio.start_background_task(randomNumberGenerator)
+
+@socketio.on('disconnect', namespace='/test')
+def test_disconnect():
+    print('Client disconnected')
+
+
+##---------------------------------------------------------------------
+
+
 
 if __name__ == '__main__':
-    socketio.run(app,debug=True)
+    socketio.run(app)
