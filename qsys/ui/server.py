@@ -31,13 +31,12 @@ myChangeGroup.AddControl(controlObjects[1])
 
 myChangeGroup.AutoPoll(Rate=0.1)
 
-
 ##---------------------------------------------------------------------
+
 def monitorCore():
     last_val = None
     while not thread_stop_event.isSet():
         try:
-            #if(last_val != gainControlObject.state['Value']):
             for i in range(len(controlObjects)):
                 if(controlObjects[i].change):
                     try:
@@ -75,7 +74,6 @@ def test_connect():
 @socketio.on('disconnect', namespace='/test')
 def test_disconnect():
     print('Client disconnected')
-
 
 ##---------------------------------------------------------------------
 
