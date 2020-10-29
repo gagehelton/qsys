@@ -33,7 +33,8 @@ def randomNumberGenerator():
                 print("change")
                 try:
                     #socketio.emit('newnumber',json.dumps({"number":gainControlObject.state['Value']}),namespace='/test')
-                    socketio.emit('newnumber', {'number': round(gainControlObject.state['Value'])}, namespace='/test')
+                    #socketio.emit('newnumber', {'number': gainControlObject.state['Value']}, namespace='/test')
+                    socketio.emit('namedControlInQsysDesigner', {'value': gainControlObject.state['Value']}, namespace='/test')
                     
                 except Exception as e:
                     print(type(e).__name__,e.args,"\n\n")
@@ -52,8 +53,8 @@ def index():
 
 @socketio.on('connect', namespace='/test')
 def test_connect():
-    # need visibility of the global thread object
     global thread
+    socketio.emit('payload',[gainControlObject.Name],namespace='/test')
     print('Client connected')
 
     #Start the random number generator thread only if the thread has not been started before.
