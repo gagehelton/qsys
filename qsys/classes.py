@@ -132,6 +132,7 @@ class Core():
                         if(self.Objects[item['Name']].state != self.Objects[item['Name']].last_state):
                             #print(self.Objects[item['Name']].state)
                             self.Objects[item['Name']].last_state = copy.copy(self.Objects[item['Name']].state)
+                            self.Objects[item['Name']].change = True
                     except Exception as e:
                         self.logger.log(lineno()+"<qsys.classes.Core object - {}> parse() | {} | {}".format(self.Name,type(e).__name__,e.args),5)
             elif(isinstance(result,dict)):
@@ -140,6 +141,7 @@ class Core():
                     if(self.Objects[result['Name']].state != self.Objects[result['Name']].last_state):
                         #print(self.Objects[result['Name']].state)
                         self.Objects[result['Name']].last_state = copy.copy(self.Objects[result['Name']].state)
+                        self.Objects[result['Name']].change = True
                 except Exception as e:
                     self.logger.log(lineno()+"<qsys.classes.Core object - {}> parse() | {} | {}".format(self.Name,type(e).__name__,e.args),5)
             else:
@@ -290,6 +292,7 @@ class Control(Base):
                 self.init = True
                 self.state = {}
                 self.last_state = {}
+                self.change = False
                 self.get(TransId=epoch())
             else:
                 init_logger.log(lineno()+"<qsys.classes.Control object> __init__() | failed to __cast__() to parent",5)

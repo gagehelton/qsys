@@ -15,36 +15,39 @@ socketio = SocketIO(app, async_mode=None, logger=True, engineio_logger=True)
 thread = Thread()
 thread_stop_event = Event()
 
+#super crappy init of Core objects
 core = Core(Name='myCore',User='',Password='',ip='192.168.61.2')
 core.start()    
+
 time.sleep(2)
-gainControlObject = Control(parent=core,Name='namedControlInQsysDesigner',ValueType=[int,float])    
+
+controlObjects = [Control(parent=core,Name='namedControlInQsysDesigner',ValueType=[int,float]),
+                   Control(parent=core,Name='namedControlInQsysDesigner2',ValueType=[int,float])]
+
 myChangeGroup = ChangeGroup(parent=core,Id='eventlet')
-myChangeGroup.AddControl(gainControlObject)
+
+myChangeGroup.AddControl(controlObjects[0])
+myChangeGroup.AddControl(controlObjects[1])
+
 myChangeGroup.AutoPoll(Rate=0.1)
 
 
 ##---------------------------------------------------------------------
-def randomNumberGenerator():
+def monitorCore():
     last_val = None
     while not thread_stop_event.isSet():
         try:
-            if(last_val != gainControlObject.state['Value']):
-                print("change")
-                try:
-                    #socketio.emit('newnumber',json.dumps({"number":gainControlObject.state['Value']}),namespace='/test')
-                    #socketio.emit('newnumber', {'number': gainControlObject.state['Value']}, namespace='/test')
-                    socketio.emit('namedControlInQsysDesigner', {'value': gainControlObject.state['Value']}, namespace='/test')
-                    
-                except Exception as e:
-                    print(type(e).__name__,e.args,"\n\n")
-                last_val = gainControlObject.state['Value']
-                print(gainControlObject.state['Value'])
-                print(last_val)
+            #if(last_val != gainControlObject.state['Value']):
+            for i in range(len(controlObjects)):
+                if(controlObjects[i].change):
+                    try:
+                        socketio.emit(controlObjects[i].Name, {'value': controlObjects[i].state['Value']}, namespace='/test')
+                    except Exception as e:
+                        print(type(e).__name__,e.args,"\n\n")
+                controlObjects[i].change = False
         except KeyError:
             pass
         socketio.sleep(.1)
-
 
 @app.route('/')
 def index():
@@ -54,13 +57,20 @@ def index():
 @socketio.on('connect', namespace='/test')
 def test_connect():
     global thread
-    socketio.emit('payload',[gainControlObject.Name],namespace='/test')
+
+    #THERE IS A BETTER WAY TO DO THIS
+    o = []
+    for i in range(len(controlObjects)):
+        o.append(controlObjects[i].Name)
+
+    #send object names to js to create front end objects
+    socketio.emit('payload',o,namespace='/test')
     print('Client connected')
 
     #Start the random number generator thread only if the thread has not been started before.
     if not thread.isAlive():
         print("Starting Thread")
-        thread = socketio.start_background_task(randomNumberGenerator)
+        thread = socketio.start_background_task(monitorCore)
 
 @socketio.on('disconnect', namespace='/test')
 def test_disconnect():
