@@ -5,6 +5,7 @@ import time,json,sys
 
 sys.path.append("../../")
 from qsys.classes import Core,ChangeGroup,Control
+from qsys.helpers import scale_number
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
@@ -40,7 +41,7 @@ def monitorCore():
             for i in range(len(controlObjects)):
                 if(controlObjects[i].change):
                     try:
-                        socketio.emit(controlObjects[i].Name, {'value': controlObjects[i].state['Value']}, namespace='/test')
+                        socketio.emit(controlObjects[i].Name, {'value': scale_number(controlObjects[i].state['Value'])}, namespace='/test')
                     except Exception as e:
                         print(type(e).__name__,e.args,"\n\n")
                 controlObjects[i].change = False

@@ -1,6 +1,13 @@
 import time
 from inspect import currentframe
 
+def scale_number(unscaled):
+    to_min = 0;
+    to_max = 100;
+    from_min = -100;
+    from_max = 20;
+    return (to_max-to_min)*(unscaled-from_min)/(from_max-from_min)+to_min
+
 def required_args(passed,required):
     for arg in required:
         if(arg not in passed):
