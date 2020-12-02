@@ -11,17 +11,22 @@
     * The parent Core class instance is required as keyword arg "parent" when creating control objects
 ```python
 #!/usr/bin/python3
-import time
+import time,argparse
 from qsys.classes import Core,Control,ChangeGroup
 
 #returns epoch time
 from qsys.helpers import epoch
 
+#cli arg parser
+parser = argparse.ArgumentParser()
+parser.add_argument("-a","--address",help="IP Address of QSYS Core",required=True)
+args = parser.parse_args()
+
 def main():
     #See qsys.py for parameters in Core class
     #The initiail EngineStatus response parameters from the device will get added to Core.__dict__
     #You can pass "port" as well, but it defaults to 1710
-    myCore = Core(Name='myCore',User='',Password='',ip='192.168.61.2')
+    myCore = Core(Name='myCore',User='',Password='',ip=args.address)
 
     #Open the socket,creates "listen" and "keepalive" threads
     myCore.start()
@@ -54,6 +59,11 @@ def main():
 
 if __name__ == '__main__':
     main()
+```
+
+* Run test.py
+```bash
+./test.py -a 192.168.1.100 (ip address of QSYS core)
 ```
 
 # Notes

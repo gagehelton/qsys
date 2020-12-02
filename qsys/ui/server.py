@@ -1,11 +1,16 @@
 from flask import Flask, render_template, request
 from flask_socketio import SocketIO, emit
 from threading import Thread,Event
-import time,json,sys
+import time,json,sys,argparse
 
 sys.path.append("../../")
 from qsys.classes import Core,ChangeGroup,Control
 from qsys.helpers import scale_number
+
+#cli arg parser
+parser = argparse.ArgumentParser()
+parser.add_argument("-a","--address",help="IP Address of QSYS Core",required=True)
+args = parser.parse_args()
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
@@ -17,7 +22,7 @@ thread = Thread()
 thread_stop_event = Event()
 
 #super crappy init of Core objects
-core = Core(Name='myCore',User='',Password='',ip='192.168.61.3')
+core = Core(Name='myCore',User='',Password='',ip=args.address)
 core.start()    
 
 time.sleep(2)
@@ -77,8 +82,6 @@ def test_disconnect():
     print('Client disconnected')
 
 ##---------------------------------------------------------------------
-
-
 
 if __name__ == '__main__':
     socketio.run(app)

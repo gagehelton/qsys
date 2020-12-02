@@ -91,7 +91,6 @@ class Core():
                 try:
                     rx = self.sock.recv(65534).decode('utf-8')
                     self.parse(rx)
-                    print(rx)
                 except Exception as e:
                     print(rx)
                     self.logger.log(lineno()+"<qsys.classes.Core object - {}> listen() | {} | {}".format(self.Name,type(e).__name__,e.args),5)
