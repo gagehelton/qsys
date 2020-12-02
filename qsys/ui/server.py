@@ -17,7 +17,7 @@ thread = Thread()
 thread_stop_event = Event()
 
 #super crappy init of Core objects
-core = Core(Name='myCore',User='',Password='',ip='192.168.61.2')
+core = Core(Name='myCore',User='',Password='',ip='192.168.61.3')
 core.start()    
 
 time.sleep(2)

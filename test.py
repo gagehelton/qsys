@@ -9,7 +9,7 @@ def main():
     #See qsys.py for parameters in Core class
     #The initiail EngineStatus response parameters from the device will get added to Core.__dict__
     #You can pass "port" as well, but it defaults to 1710
-    myCore = Core(Name='myCore',User='',Password='',ip='192.168.61.2')
+    myCore = Core(Name='myCore',User='',Password='',ip='192.168.61.3')
 
     #Open the socket,creates "listen" and "keepalive" threads
     myCore.start()

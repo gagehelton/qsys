@@ -51,6 +51,7 @@ class Core():
             self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.ConnectionMethods = ConnectionMethods(parent=self,User=self.User,Password=self.Password)
             self.StatusMethods = StatusMethods(parent=self)
+            self._stop = False #set stop state in threads
         else:
             init_logger.log(lineno()+"<qsys.classes.Core class> __init__ () | {}".format(error),5)
     
@@ -58,8 +59,25 @@ class Core():
         if(self.connect()):
             threading.Thread(target=self.listen).start()
             threading.Thread(target=self.keepalive).start()
+        else:
+            print("issues in def start")
+
+    def stop(self):
+        try:
+            self._stop = True
+            self.sock.close()
+            time.sleep(2)
+            for t in threading.enumerate():
+                if(not t.is_alive()):
+                    t.join()
+            print("clean") #not really, need a better method
+            return True
+        except Exception as e:
+            self.logger.log(lineno()+"<qsys.classes.Core object - {}> stop() | {} | {}".format(self.Name,type(e).__name__,e.args),5)
+            return False
 
     def connect(self):
+        print("trying to connect")
         try:
             self.sock.connect((self.ip,self.port))
             return True
@@ -69,23 +87,32 @@ class Core():
 
     def listen(self):
         while True:
-            try:
-                rx = self.sock.recv(65534).decode('utf-8')
-                self.parse(rx)
-            except Exception as e:
-                print(rx)
-                self.logger.log(lineno()+"<qsys.classes.Core object - {}> listen() | {} | {}".format(self.Name,type(e).__name__,e.args),5)
-            time.sleep(.001)
+            if(not self._stop): #this doesn't work because the thread waits to rx data from the core... need another method
+                try:
+                    rx = self.sock.recv(65534).decode('utf-8')
+                    self.parse(rx)
+                    print(rx)
+                except Exception as e:
+                    print(rx)
+                    self.logger.log(lineno()+"<qsys.classes.Core object - {}> listen() | {} | {}".format(self.Name,type(e).__name__,e.args),5)
+                time.sleep(.001)
+            else:
+                self.logger.log(lineno()+"<qsys.classes.Core object - {}> listen() - breaking while loop",2)
+                break 
 
     def keepalive(self):
         while True:
-            self.ConnectionMethods.NoOp()
-            time.sleep(60)
-            #clean up worker threads
-            for t in threading.enumerate():
-                if(not t.is_alive()):
-                    t.join()
-
+            if(not self._stop): #need a better method
+                self.ConnectionMethods.NoOp()
+                time.sleep(60)
+                #clean up worker threads
+                for t in threading.enumerate():
+                    if(not t.is_alive()):
+                        t.join()
+            else:
+                self.logger.log(lineno()+"<qsys.classes.Core object - {}> keepalive() - breaking while loop",2)   
+                break
+            
     #THIS CODE SUCKS
     def parse(self,payload): #need to think about this some more
         try:
@@ -325,7 +352,14 @@ class Control(Base):
 
 class ComponentControl(Base): #coming soon
     def __init__(self,**kwargs):
-        pass
+        required = {'parent':Core}
+        success,error = required_args(kwargs,required)
+        if(success):
+            self.__dict__.update(**kwargs)    
+        else:
+            init_logger.log(lineno()+"<qsys.classes.ComponentControl class> __init__() | {}".format(error),5)
+    def GetComponents(self,**kwargs):
+        return self.send(self.parent.sock,self.parent.logger,method='Component.GetComponents',params='',id=kwargs['TransId'])
 
 class MixerControl(Base): #coming soon
     def __init__(self,**kwargs):
